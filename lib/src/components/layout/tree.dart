@@ -2385,6 +2385,9 @@ class _TreeItemViewState extends State<TreeItemView> {
         ),
       ),
     );
+    if (Directionality.of(context) == TextDirection.rtl) {
+      rowChildren = rowChildren.reversed.toList();
+    }
     return ExcludeFocus(
       excluding: !data.expanded && !data.node.expanded,
       child: DefaultTextStyle.merge(
