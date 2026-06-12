@@ -2013,6 +2013,7 @@ class IndentGuideLine implements BranchLine {
         color: color ?? Theme.of(context).colorScheme.border,
         top: true,
         bottom: true,
+        textDirection: Directionality.of(context),
       ),
     );
   }
@@ -2070,6 +2071,7 @@ class IndentGuidePath implements BranchLine {
         right: right,
         bottom: bottom,
         left: left,
+        textDirection: Directionality.of(context),
       ),
     );
   }
@@ -2081,6 +2083,7 @@ class _PathPainter extends CustomPainter {
   final bool right;
   final bool bottom;
   final bool left;
+  final TextDirection textDirection;
 
   _PathPainter({
     required this.color,
@@ -2088,6 +2091,7 @@ class _PathPainter extends CustomPainter {
     this.right = false,
     this.bottom = false,
     this.left = false,
+    this.textDirection = TextDirection.ltr,
   });
 
   @override
@@ -2116,7 +2120,15 @@ class _PathPainter extends CustomPainter {
       path.moveTo(halfWidth, halfHeight);
       path.lineTo(0, halfHeight);
     }
-    canvas.drawPath(path, paint);
+    if (textDirection == TextDirection.rtl) {
+      canvas.save();
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+      canvas.drawPath(path, paint);
+      canvas.restore();
+    } else {
+      canvas.drawPath(path, paint);
+    }
   }
 
   @override
@@ -2124,7 +2136,9 @@ class _PathPainter extends CustomPainter {
     return oldDelegate.color != color ||
         oldDelegate.top != top ||
         oldDelegate.right != right ||
-        oldDelegate.bottom != bottom;
+        oldDelegate.bottom != bottom ||
+        oldDelegate.left != left ||
+        oldDelegate.textDirection != textDirection;
   }
 }
 
@@ -2312,6 +2326,7 @@ class _TreeItemViewState extends State<TreeItemView> {
     final densityGap = theme.density.baseGap * scaling;
     final data = _data;
     assert(data != null, 'TreeItemView must be a descendant of TreeView');
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     List<Widget> rowChildren = [];
     if (data!.expandIcon) rowChildren.add(SizedBox(width: densityGap));
     for (int i = 0; i < data.depth.length; i++) {
@@ -2340,7 +2355,7 @@ class _TreeItemViewState extends State<TreeItemView> {
             },
             child: AnimatedRotation(
               duration: kDefaultDuration,
-              turns: data.node.expanded ? 0.25 : 0,
+              turns: data.node.expanded ? 0.25 : (isRtl ? 0.5 : 0),
               child: const Icon(Icons.chevron_right).iconSmall(),
             ),
           ),
@@ -2385,9 +2400,6 @@ class _TreeItemViewState extends State<TreeItemView> {
         ),
       ),
     );
-    if (Directionality.of(context) == TextDirection.rtl) {
-      rowChildren = rowChildren.reversed.toList();
-    }
     return ExcludeFocus(
       excluding: !data.expanded && !data.node.expanded,
       child: DefaultTextStyle.merge(
